@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mwangi's Family Tree</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Typography overrides */
+        h1, h2, h3, h4 {
+            font-family: 'Playfair Display', serif;
+        }
+        body {
+            font-family: 'Lato', sans-serif;
+            background-color: #fdfbf7;
+            background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+            background-size: 20px 20px;
+            /* Prevent default body scroll to handle rotation wrapper logic */
+            overflow-x: hidden;
+            margin: 0;
+        }
+
+        /* --- ROBUST TREE CSS --- */
+        .tree ul {
+            padding-top: 20px; 
+            position: relative;
+            transition: all 0.5s;
+            display: flex;
+            justify-content: center;
+        }
+
+        .tree li {
+            float: left; text-align: center;
+            list-style-type: none;
+            position: relative;
+            padding: 20px 5px 0 5px;
+            transition: all 0.5s;
+        }
+
+        /* Connectors */
+        .tree li::before, .tree li::after{
+            content: '';
+            position: absolute; top: 0; right: 50%;
+            border-top: 2px solid #a1887f;
+            width: 50%; height: 20px;
+            z-index: -1;
+        }
+        .tree li::after{
+            right: auto; left: 50%;
+            border-left: 2px solid #a1887f;
+        }
+
+        /* Remove left-right connectors from elements without siblings */
+        .tree li:first-child::before, .tree li:last-child::after{
+            border-top: none;
+        }
+
+        /* Vertical connectors */
+        .tree li:last-child::before{
+            border-right: 2px solid #a1887f;
+            border-radius: 0 5px 0 0;
+        }
+        .tree li:first-child::after{
+            border-radius: 5px 0 0 0;
+        }
+        .tree ul ul::before{
+            content: '';
+            position: absolute; top: 0; left: 50%;
+            border-left: 2px solid #a1887f;
+            width: 0; height: 20px;
+            z-index: -1;
+        }
+
+        /* SINGLE CHILD FIX */
+        .tree li:only-child::after, .tree li:only-child::before {
+            display: none;
+        }
+        .tree li:only-child { 
+            padding-top: 0;
+        }
+
+        /* Responsive Container */
+        .tree-container {
+            overflow-x: auto;
+            padding: 50px 20px;
+            cursor: grab;
+            min-height: 80vh;
+        }
+        .tree-container:active {
+            cursor: grabbing;
+        }
+        
+        /* CARD STYLING */
+        .family-card {
+            background: #ffffff;
+            border: 1px solid #d7ccc8;
+            box-shadow: 0 4px 6px rgba(62, 39, 35, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 2;
+            display: inline-block;
+            min-width: 140px;
+        }
+        .family-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 20px rgba(62, 39, 35, 0.15);
+            border-color: #8d6e63;
+        }
+        
+        /* Decorative Elements */
+        .ornament {
+            display: inline-block;
+            width: 80%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #8d6e63, transparent);
+            margin: 8px 0;
+        }
+
+        /* Welcome Screen Animation */
+        #welcome-screen {
+            background-color: #fdfbf7;
+            background-image: radial-gradient(#d1d5db 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* --- MOBILE AUTO-TILT FEATURE --- */
+        /* Only apply on screens smaller than 768px (tablets/phones) that are in Portrait mode */
+        @media only screen and (max-width: 768px) and (orientation: portrait) {
+            body {
+                /* Lock body scroll to prevent messiness */
+                width: 100vw;
+                height: 100vh;
+                overflow: hidden;
+            }
+            .rotate-wrapper {
+                /* Swap dimensions: Height becomes Width */
+                width: 100vh; 
+                height: 100vw;
+                
+                /* Rotate 90 degrees clockwise */
+                transform: rotate(90deg);
+                transform-origin: top left;
+                
+                /* Position correctly after rotation */
+                position: absolute;
+                top: 0;
+                left: 100%; 
+                
+                /* Enable internal scrolling */
+                overflow-x: hidden;
+                overflow-y: auto;
+                
+                background-color: #fdfbf7;
+            }
+            
+            /* Show a small hint */
+            .orientation-hint {
+                display: block !important;
+            }
+        }
+        
+        .orientation-hint {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-90deg); /* Text is upright relative to user before they tilt */
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0;
+            animation: fadeInOut 4s forwards;
+            white-space: nowrap;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+    </style>
+</head>
+<body class="text-stone-800">
+
+    <!-- Wrapper for Auto-Tilt -->
+    <div class="rotate-wrapper w-full h-full min-h-screen flex flex-col items-center">
+
+        <!-- Orientation Hint (Visible only on Portrait Mobile) -->
+        <div class="orientation-hint">Please tilt your phone ↻</div>
+
+        <!-- WELCOME SCREEN OVERLAY -->
+        <div id="welcome-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center transition-opacity duration-1000 ease-in-out p-4">
+            <div class="text-center p-8 md:p-16 bg-white border-4 border-double border-stone-800 shadow-2xl max-w-3xl w-full relative">
+                <!-- Decorative Corners -->
+                <div class="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-stone-800"></div>
+                <div class="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-stone-800"></div>
+                <div class="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-stone-800"></div>
+                <div class="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-stone-800"></div>
+
+                <h1 class="text-4xl md:text-6xl font-bold mb-4 font-serif tracking-widest uppercase text-stone-900">Mwangi's Family</h1>
+                <div class="w-24 h-1 bg-stone-800 mx-auto mb-6"></div>
+                <p class="text-xl md:text-2xl italic font-serif text-stone-600 mb-10">Welcome to our lineage.</p>
+                
+                <button onclick="enterSite()" class="px-10 py-3 bg-stone-800 text-[#fdfbf7] font-serif tracking-widest text-lg hover:bg-stone-700 transition-all duration-300 uppercase border border-stone-800 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    Enter Archives
+                </button>
+            </div>
+        </div>
+
+        <!-- Elegant Header -->
+        <header class="w-full py-8 text-center bg-[#fffefc] shadow-sm border-b border-stone-200">
+            <h1 class="text-4xl md:text-5xl font-bold text-stone-800 tracking-wide">Mwangi's Family</h1>
+            <div class="w-24 h-1 bg-stone-400 mx-auto my-4 rounded-full"></div>
+            <p class="text-stone-500 italic font-serif text-lg">A Legacy of Love</p>
+        </header>
+
+        <!-- Tree Section -->
+        <main class="w-full flex-grow overflow-hidden bg-stone-50/50">
+            <div class="tree-container w-full custom-scrollbar">
+                <div class="tree w-max mx-auto">
+                    <ul>
+                        <li>
+                            <!-- Parents Node -->
+                            <div class="relative group">
+                                <div class="family-card w-80 p-6 rounded-sm text-center mx-auto border-t-4 border-t-stone-600">
+                                    <h3 class="text-2xl font-bold text-stone-900 mb-1">Nahashon & Jane</h3>
+                                    <h3 class="text-xl font-bold text-stone-900 mb-2">Mwangi</h3>
+                                    <div class="ornament"></div>
+                                    <p class="text-stone-500 text-sm uppercase tracking-widest mt-2">Family Patriarch & Matriarch</p>
+                                </div>
+                            </div>
+
+                            <!-- Children Level -->
+                            <ul>
+                                <!-- Child 1: Rahab -->
+                                <li>
+                                    <div class="family-card w-48 p-4 rounded-sm text-center border-t-4 border-t-stone-400">
+                                        <div class="text-stone-300 text-xs font-serif italic mb-2">I</div>
+                                        <h4 class="font-bold text-lg text-stone-800">Rahab Mwangi</h4>
+                                        <div class="ornament"></div>
+                                        <span class="text-xs text-stone-500 font-semibold uppercase">First Born</span>
+                                    </div>
+                                    <!-- Grandchildren -->
+                                    <ul>
+                                        <li>
+                                            <div class="family-card p-3 rounded-sm text-center border-t-4 border-t-[#a1887f]">
+                                                <h4 class="font-bold text-stone-700 text-sm">Joshua Israel</h4>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </li>
+
+                                <!-- Child 2: John -->
+                                <li>
+                                    <div class="family-card w-48 p-4 rounded-sm text-center border-t-4 border-t-stone-400">
+                                        <div class="text-stone-300 text-xs font-serif italic mb-2">II</div>
+                                        <h4 class="font-bold text-lg text-stone-800">John Mwangi</h4>
+                                        <div class="ornament"></div>
+                                        <span class="text-xs text-stone-500 font-semibold uppercase">Second Born</span>
+                                    </div>
+                                    <!-- Grandchildren -->
+                                    <ul>
+                                        <li>
+                                            <div class="family-card p-3 rounded-sm text-center border-t-4 border-t-[#a1887f]">
+                                                <h4 class="font-bold text-stone-700 text-sm">Brian Igamba</h4>
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <div class="family-card p-3 rounded-sm text-center border-t-4 border-t-[#a1887f]">
+                                                <h4 class="font-bold text-stone-700 text-sm">James Igamba</h4>
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <div class="family-card p-3 rounded-sm text-center border-t-4 border-t-[#a1887f]">
+                                                <h4 class="font-bold text-stone-700 text-sm">Shawn Igamba</h4>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </li>
+
+                                <!-- Child 3: Gladys -->
+                                <li>
+                                    <div class="family-card w-48 p-4 rounded-sm text-center border-t-4 border-t-stone-400">
+                                        <div class="text-stone-300 text-xs font-serif italic mb-2">III</div>
+                                        <h4 class="font-bold text-lg text-stone-800">Gladys Warigia</h4>
+                                        <div class="ornament"></div>
+                                        <span class="text-xs text-stone-500 font-semibold uppercase">Third Born</span>
+                                    </div>
+                                    <!-- Grandchildren -->
+                                    <ul>
+                                        <li>
+                                            <div class="family-card p-3 rounded-sm text-center border-t-4 border-t-[#a1887f]">
+                                                <h4 class="font-bold text-stone-700 text-sm">Neema Wangeci</h4>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </li>
+
+                                <!-- Child 4: Andrew (No Grandchildren) -->
+                                <li>
+                                    <div class="family-card w-48 p-4 rounded-sm text-center border-t-4 border-t-stone-400">
+                                        <div class="text-stone-300 text-xs font-serif italic mb-2">IV</div>
+                                        <h4 class="font-bold text-lg text-stone-800 leading-tight">Andrew Ndirangu</h4>
+                                        <div class="ornament"></div>
+                                        <span class="text-xs text-stone-500 font-semibold uppercase">Fourth Born</span>
+                                    </div>
+                                </li>
+
+                                <!-- Child 5: Zipporah -->
+                                <li>
+                                    <div class="family-card w-48 p-4 rounded-sm text-center border-t-4 border-t-stone-400">
+                                        <div class="text-stone-300 text-xs font-serif italic mb-2">V</div>
+                                        <h4 class="font-bold text-lg text-stone-800 leading-tight">Zipporah Mwangi</h4>
+                                        <div class="ornament"></div>
+                                        <span class="text-xs text-stone-500 font-semibold uppercase">Fifth Born</span>
+                                    </div>
+                                    <!-- Grandchildren -->
+                                    <ul>
+                                        <li>
+                                            <div class="family-card p-3 rounded-sm text-center border-t-4 border-t-[#a1887f]">
+                                                <h4 class="font-bold text-stone-700 text-sm">Stacy Hope</h4>
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <div class="family-card p-3 rounded-sm text-center border-t-4 border-t-[#a1887f]">
+                                                <h4 class="font-bold text-stone-700 text-sm">Myles Mwangi</h4>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </li>
+
+                                <!-- Child 6: Joseph -->
+                                <li>
+                                    <div class="family-card w-48 p-4 rounded-sm text-center border-t-4 border-t-stone-400">
+                                        <div class="text-stone-300 text-xs font-serif italic mb-2">VI</div>
+                                        <h4 class="font-bold text-lg text-stone-800">Joseph Mbugua</h4>
+                                        <div class="ornament"></div>
+                                        <span class="text-xs text-stone-500 font-semibold uppercase">Last Born</span>
+                                    </div>
+                                    <!-- Grandchildren -->
+                                    <ul>
+                                        <li>
+                                            <div class="family-card p-3 rounded-sm text-center border-t-4 border-t-[#a1887f]">
+                                                <h4 class="font-bold text-stone-700 text-sm">Aiden Mwangi</h4>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+
+        <footer class="w-full py-6 text-center text-stone-500 text-xs border-t border-stone-200 bg-white">
+            <p>&copy; 2024 Mwangi's Family Archive</p>
+        </footer>
+
+    </div><!-- End Rotate Wrapper -->
+
+    <script>
+        // Welcome Screen Logic
+        function enterSite() {
+            const screen = document.getElementById('welcome-screen');
+            screen.classList.add('fade-out');
+            setTimeout(() => {
+                screen.style.display = 'none';
+            }, 1000);
+        }
+
+        // Drag scrolling logic
+        const slider = document.querySelector('.tree-container');
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        slider.addEventListener('mousedown', (e) => {
+            isDown = true;
+            slider.classList.add('active');
+            startX = e.pageX - slider.offsetLeft;
+            scrollLeft = slider.scrollLeft;
+        });
+        slider.addEventListener('mouseleave', () => {
+            isDown = false;
+            slider.classList.remove('active');
+        });
+        slider.addEventListener('mouseup', () => {
+            isDown = false;
+            slider.classList.remove('active');
+        });
+        slider.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - slider.offsetLeft;
+            const walk = (x - startX) * 2; 
+            slider.scrollLeft = scrollLeft - walk;
+        });
+    </script>
+</body>
+</html>
